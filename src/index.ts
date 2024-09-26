@@ -19,7 +19,7 @@ const connection = mysql.createPool({
 app.use(express.json());
 // Middleware para permitir dados no formato URLENCODED
 app.use(express.urlencoded({ extended: true }));
-
+// Lista de Categories
 app.get("/categories", async function (req: Request, res: Response) {
   const [rows] = await connection.query("SELECT * FROM categories");
   return res.render("categories/index", {
@@ -49,5 +49,61 @@ app.post(
     res.redirect("/categories");
   }
 );
+
+// Requisitos Funcionais
+// Cadastro de Usuarios
+app.get("/users", async function (req: Request, res: Response) {
+  const [rows] = await connection.query("SELECT * FROM users");
+  return res.render("users/index", {
+    users: rows,
+  });
+});
+
+app.get("/users/add", async function (req: Request, res: Response) {
+  return res.render("users/add");
+});
+
+app.post("/users", async function (req: Request, res: Response) {
+  const body = req.body;
+  const insertQuery =
+    "INSERT INTO users (name, email, password, role, active) VALUES (?, ?, ?, ?, ?)";
+  await connection.query(insertQuery, [
+    body.name,
+    body.email,
+    body.password,
+    body.role,
+    body.active,
+  ]);
+  res.redirect("/users");
+});
+
+app.post("/users/:id/delete", async function (req: Request, res: Response) {
+  const id = req.params.id;
+  const deleteQuery = "DELETE FROM users WHERE id = ?";
+  await connection.query(deleteQuery, [id]);
+  res.redirect("/users");
+});
+
+// Formulario de Login
+app.get("/login", async function (req: Request, res: Response) {
+  return res.render("login/index");
+});
+
+app.post("/login", async function (req: Request, res: Response) {
+  const body = req.body;
+  const query = "SELECT * FROM users WHERE email = ? AND password = ?";
+  const [result] = await connection.query(query, [body.email, body.password]);
+  if (Array.isArray(result) && result.length === 0) {
+    res.redirect("/users");
+  } else {
+    res.redirect("/login");
+  }
+});
+
+// Requisitos Estaticos
+// Pagina Inicial
+app.get("/blog", async function (req: Request, res: Response) {
+  return res.render("blog/index");
+});
 
 app.listen("4000", () => console.log("Server is listening on port 4000"));
