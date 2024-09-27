@@ -11,7 +11,7 @@ const connection = mysql.createPool({
   host: "localhost",
   port: 3306,
   user: "root",
-  password: "root",
+  password: "mudar123",
   database: "unicesumar",
 });
 
@@ -64,16 +64,12 @@ app.get("/users/add", async function (req: Request, res: Response) {
 });
 
 app.post("/users", async function (req: Request, res: Response) {
-  const body = req.body;
-  const insertQuery =
-    "INSERT INTO users (name, email, password, role, active) VALUES (?, ?, ?, ?, ?)";
-  await connection.query(insertQuery, [
-    body.name,
-    body.email,
-    body.password,
-    body.role,
-    body.active,
-  ]);
+  const { name, email, password, role, active } = req.body;
+  const isActive = active === "on" ? 1 : 0;
+  const insertQuery = `
+    INSERT INTO users (name, email, password, role, active, created_at) 
+    VALUES (?, ?, ?, ?, ?, NOW())`;
+  await connection.query(insertQuery, [name, email, password, role, isActive]);
   res.redirect("/users");
 });
 
@@ -90,10 +86,11 @@ app.get("/login", async function (req: Request, res: Response) {
 });
 
 app.post("/login", async function (req: Request, res: Response) {
-  const body = req.body;
+  const { email, password } = req.body;
   const query = "SELECT * FROM users WHERE email = ? AND password = ?";
-  const [result] = await connection.query(query, [body.email, body.password]);
-  if (Array.isArray(result) && result.length === 0) {
+  const [result] = await connection.query(query, [email, password]);
+
+  if (Array.isArray(result) && result.length > 0) {
     res.redirect("/users");
   } else {
     res.redirect("/login");
