@@ -11,7 +11,7 @@ const connection = mysql.createPool({
   host: "localhost",
   port: 3306,
   user: "root",
-  password: "mudar123",
+  password: "root",
   database: "unicesumar",
 });
 
@@ -64,12 +64,12 @@ app.get("/users/add", async function (req: Request, res: Response) {
 });
 
 app.post("/users", async function (req: Request, res: Response) {
-  const { name, email, password, role, active } = req.body;
+  const { name, email, password, papel, active } = req.body;
   const isActive = active === "on" ? 1 : 0;
   const insertQuery = `
-    INSERT INTO users (name, email, password, role, active, created_at) 
+    INSERT INTO users (name, email, password, papel, active, created_at) 
     VALUES (?, ?, ?, ?, ?, NOW())`;
-  await connection.query(insertQuery, [name, email, password, role, isActive]);
+  await connection.query(insertQuery, [name, email, password, papel, isActive]);
   res.redirect("/users");
 });
 
