@@ -19,12 +19,21 @@
         align-items: center;
       }
 
+      input::placeholder {
+        opacity: 0.5;
+        color: #999797 !important;
+      }
+
       .container {
         max-width: 400px;
         background-color: #2c2c2c;
         padding: 20px;
         border-radius: 8px;
         box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+      }
+
+      label {
+        margin-bottom: 8px;
       }
 
       h1 {
@@ -50,6 +59,12 @@
         color: #e0e0e0;
       }
 
+      .error {
+        color: #dc3545;
+        margin-bottom: 15px;
+        text-align: center;
+      }
+
       @media (max-width: 768px) {
         .container {
           width: 90%;
@@ -60,10 +75,16 @@
   <body>
     <div class="container">
       <h1 class="mb-4">Login</h1>
-      <form action="/login" method="post">
+
+      <% if (typeof errorMessage !== 'undefined') { %>
+      <div class="error"><%= errorMessage %></div>
+      <% } %>
+
+      <form action="/login/search" method="post">
         <div class="form-group mb-3">
           <label for="email">Email</label>
           <input
+            placeholder="Digite o email"
             type="email"
             class="form-control"
             id="email"
@@ -74,10 +95,11 @@
         <div class="form-group mb-4">
           <label for="password">Senha</label>
           <input
+            placeholder="Digite a senha"
             type="password"
             class="form-control"
-            id="password"
-            name="password"
+            id="senha"
+            name="senha"
             required
           />
         </div>

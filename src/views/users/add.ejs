@@ -16,6 +16,11 @@
         font-family: Arial, sans-serif;
       }
 
+      input::placeholder {
+        opacity: 0.5;
+        color: #e0e0e077 !important;
+      }
+
       h1 {
         text-align: center;
         margin-top: 30px;
@@ -32,6 +37,11 @@
       }
 
       .form-group label {
+        color: #e0e0e0;
+      }
+
+      .form-select {
+        background-color: #1c1c1c;
         color: #e0e0e0;
       }
 
@@ -85,10 +95,11 @@
   <body>
     <div class="container mt-5">
       <h1 class="mb-4">Cadastrar Usuário</h1>
-      <form action="/users" method="post">
+      <form action="/users/save" method="post">
         <div class="form-group mb-3">
-          <label for="name">Nome</label>
+          <label for="name" style="color: white">Nome</label>
           <input
+            placeholder="Digite o nome"
             type="text"
             class="form-control"
             id="name"
@@ -99,6 +110,7 @@
         <div class="form-group mb-3">
           <label for="email">Email</label>
           <input
+            placeholder="Digite o email"
             type="email"
             class="form-control"
             id="email"
@@ -109,32 +121,39 @@
         <div class="form-group mb-3">
           <label for="password">Senha</label>
           <input
+            placeholder="Digite a senha"
             type="password"
             class="form-control"
-            id="password"
-            name="password"
+            id="senha"
+            name="senha"
             required
           />
         </div>
         <div class="form-group mb-3">
           <label for="confirm_password">Confirmar Senha</label>
           <input
+            placeholder="Confirme a senha"
             type="password"
             class="form-control"
-            id="confirm_password"
-            name="confirm_password"
+            id="confirm_senha"
+            name="confirm_senha"
             required
           />
         </div>
         <div class="form-group mb-3">
-          <label for="papel">Papel</label>
-          <input
-            type="text"
-            class="form-control"
+          <label for="" class="mb-2">Papel</label>
+          <select
+            class="form-select mb-3"
+            aria-label="Default select example"
             id="papel"
             name="papel"
-            required
-          />
+          >
+            <option value="1" selected>Usuário</option>
+            <option value="2">Administrador</option>
+            <option value="3">Senior</option>
+            <option value="4">Junior</option>
+            <option value="5">Estagiario</option>
+          </select>
         </div>
         <div class="form-group mb-3 form-check">
           <input

@@ -1,5 +1,7 @@
 import express, { Request, Response } from "express";
 import mysql from "mysql2/promise";
+import { ResultSetHeader } from "mysql2";
+import session from "express-session";
 
 const app = express();
 
@@ -7,6 +9,17 @@ const app = express();
 app.set("view engine", "ejs");
 app.set("views", `${__dirname}/views`);
 
+// Middleware de sessão
+app.use(
+  session({
+    secret: "segredo",
+    resave: false,
+    saveUninitialized: false,
+    cookie: { secure: false },
+  })
+);
+
+// Conexão com o banco de dados
 const connection = mysql.createPool({
   host: "localhost",
   port: 3306,
@@ -15,92 +28,140 @@ const connection = mysql.createPool({
   database: "unicesumar",
 });
 
-// Middleware para permitir dados no formato JSON
+// Middlewares para permitir dados no formato JSON e URLENCODED
 app.use(express.json());
-// Middleware para permitir dados no formato URLENCODED
 app.use(express.urlencoded({ extended: true }));
-// Lista de Categories
-app.get("/categories", async function (req: Request, res: Response) {
+
+// ------------------------ Categories ------------------------
+app.get("/categories", async (req: Request, res: Response) => {
   const [rows] = await connection.query("SELECT * FROM categories");
-  return res.render("categories/index", {
-    categories: rows,
-  });
+  res.render("categories/index", { categories: rows });
 });
 
-app.get("/categories/form", async function (req: Request, res: Response) {
-  return res.render("categories/form");
+app.get("/categories/form", (req: Request, res: Response) => {
+  res.render("categories/form");
 });
 
-app.post("/categories/save", async function (req: Request, res: Response) {
-  const body = req.body;
-  const insertQuery = "INSERT INTO categories (name) VALUES (?)";
-  await connection.query(insertQuery, [body.name]);
-
+app.post("/categories/save", async (req: Request, res: Response) => {
+  const { name } = req.body;
+  await connection.query("INSERT INTO categories (name) VALUES (?)", [name]);
   res.redirect("/categories");
 });
 
-app.post(
-  "/categories/delete/:id",
-  async function (req: Request, res: Response) {
-    const id = req.params.id;
-    const sqlDelete = "DELETE FROM categories WHERE id = ?";
-    await connection.query(sqlDelete, [id]);
+app.post("/categories/delete/:id", async (req: Request, res: Response) => {
+  const { id } = req.params;
+  await connection.query("DELETE FROM categories WHERE id = ?", [id]);
+  res.redirect("/categories");
+});
 
-    res.redirect("/categories");
-  }
-);
-
-// Requisitos Funcionais
-// Cadastro de Usuarios
-app.get("/users", async function (req: Request, res: Response) {
+// ------------------------ Users ------------------------
+app.get("/users", async (req: Request, res: Response) => {
   const [rows] = await connection.query("SELECT * FROM users");
-  return res.render("users/index", {
-    users: rows,
-  });
+  res.render("users/index", { users: rows });
 });
 
-app.get("/users/add", async function (req: Request, res: Response) {
-  return res.render("users/add");
+app.get("/users/add", (req: Request, res: Response) => {
+  res.render("users/add");
 });
 
-app.post("/users", async function (req: Request, res: Response) {
-  const { name, email, password, papel, active } = req.body;
+app.post("/users", async (req: Request, res: Response) => {
+  const { name, email, senha, papel, active } = req.body;
   const isActive = active === "on" ? 1 : 0;
-  const insertQuery = `
-    INSERT INTO users (name, email, password, papel, active, created_at) 
-    VALUES (?, ?, ?, ?, ?, NOW())`;
-  await connection.query(insertQuery, [name, email, password, papel, isActive]);
+  await connection.query(
+    "INSERT INTO users (name, email, senha, papel, active, created_at) VALUES (?, ?, ?, ?, ?, NOW())",
+    [name, email, senha, papel, isActive]
+  );
   res.redirect("/users");
 });
 
-app.post("/users/:id/delete", async function (req: Request, res: Response) {
-  const id = req.params.id;
-  const deleteQuery = "DELETE FROM users WHERE id = ?";
-  await connection.query(deleteQuery, [id]);
+app.post("/users/delete/:id", async (req: Request, res: Response) => {
+  const { id } = req.params;
+  await connection.query("DELETE FROM users WHERE id = ?", [id]);
   res.redirect("/users");
 });
 
-// Formulario de Login
-app.get("/login", async function (req: Request, res: Response) {
-  return res.render("login/index");
+// Editar usuários
+app.get("/users/edit/:id", async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const [rows] = await connection.query("SELECT * FROM users WHERE id = ?", [
+    id,
+  ]);
+  if (Array.isArray(rows) && rows.length > 0) {
+    res.render("users/edit", { user: rows[0] });
+  } else {
+    res.redirect("/users");
+  }
 });
 
-app.post("/login", async function (req: Request, res: Response) {
-  const { email, password } = req.body;
-  const query = "SELECT * FROM users WHERE email = ? AND password = ?";
-  const [result] = await connection.query(query, [email, password]);
+app.post("/users/update/:id", async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { name, email, senha, papel, active } = req.body;
+  const isActive = active === "on" ? 1 : 0;
+  await connection.query(
+    "UPDATE users SET name = ?, email = ?, senha = ?, papel = ?, ativo = ? WHERE id = ?",
+    [name, email, senha, papel, isActive, id]
+  );
+  res.redirect("/users");
+});
+
+// ------------------------ Login ------------------------
+app.get("/login", (req: Request, res: Response) => {
+  res.render("login/index");
+});
+
+app.post("/login", async (req: Request, res: Response) => {
+  const { email, senha } = req.body;
+  const [result] = await connection.query(
+    "SELECT * FROM users WHERE email = ? AND senha = ?",
+    [email, senha]
+  );
 
   if (Array.isArray(result) && result.length > 0) {
+    req.session.userId = result[0].id;
     res.redirect("/users");
   } else {
     res.redirect("/login");
   }
 });
 
-// Requisitos Estaticos
-// Pagina Inicial
-app.get("/blog", async function (req: Request, res: Response) {
-  return res.render("blog/index");
+app.post("/login/search", async (req: Request, res: Response) => {
+  const { email, senha } = req.body;
+  const [result] = await connection.query(
+    "SELECT * FROM users WHERE email = ? AND senha = ?",
+    [email, senha]
+  );
+
+  if (Array.isArray(result) && result.length > 0) {
+    req.session.userId = result[0].id;
+    res.redirect("/users");
+  } else {
+    res.render("login/index", { errorMessage: "Email ou senha incorretos!" });
+  }
 });
 
-app.listen("4000", () => console.log("Server is listening on port 4000"));
+// ------------------------ Página Inicial ------------------------
+app.get("/", (req: Request, res: Response) => {
+  res.render("blog/index");
+});
+
+// ------------------------ Salvar Usuários ------------------------
+app.post("/users/save", async (req: Request, res: Response) => {
+  const { name, email, senha, confirm_senha, papel, ativo } = req.body;
+  
+  const isActive = ativo === "on" ? 1 : 0;
+
+  const [result] = await connection.query<ResultSetHeader>(
+    "INSERT INTO users (name, email, senha, confirm_senha, papel, ativo) VALUES (?, ?, ?, ?, ?, ?)",
+    [name, email, senha, confirm_senha, papel, isActive]
+  );
+
+  if (result.affectedRows > 0) {
+    req.session.userId = result.insertId;
+    res.redirect("/users");
+  } else {
+    res.render("users/add");
+  }
+});
+
+// ------------------------ Inicialização do Servidor ------------------------
+app.listen(4000, () => console.log("Server is listening on port 4000"));
