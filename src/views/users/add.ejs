@@ -95,6 +95,11 @@
   <body>
     <div class="container mt-5">
       <h1 class="mb-4">Cadastrar Usuário</h1>
+
+      <% if (errorMessage) { %>
+      <div class="alert alert-danger"><%= errorMessage %></div>
+      <% } %>
+
       <form action="/users/save" method="post">
         <div class="form-group mb-3">
           <label for="name" style="color: white">Nome</label>
@@ -159,8 +164,8 @@
           <input
             type="checkbox"
             class="form-check-input"
-            id="active"
-            name="active"
+            id="ativo"
+            name="ativo"
           />
           <label class="form-check-label" for="active">Ativo</label>
         </div>

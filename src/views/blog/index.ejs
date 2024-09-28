@@ -26,7 +26,10 @@
       }
 
       .container {
+        background-color: #2c2c2c;
         padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
       }
 
       .card {
@@ -53,6 +56,17 @@
       .btn-outline-info:hover {
         background-color: #17a2b8;
         color: #fff;
+      }
+
+      .logout-btn {
+        display: inline-block;
+        width: 49%;
+        text-align: center;
+      }
+      .blog-btn {
+        display: inline-block;
+        width: 49%;
+        text-align: center;
       }
 
       @media (max-width: 768px) {
@@ -167,6 +181,13 @@
             </div>
           </div>
         </div>
+      </div>
+
+      <div class="d-flex justify-content-between mt-4">
+        <a href="/users" class="btn btn-primary blog-btn"
+          >Ir para a Lista de Usuários</a
+        >
+        <a href="/logout" class="btn btn-danger logout-btn">Logout</a>
       </div>
     </div>
 

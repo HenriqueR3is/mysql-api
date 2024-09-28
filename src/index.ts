@@ -1,7 +1,13 @@
 import express, { Request, Response } from "express";
 import mysql from "mysql2/promise";
-import { ResultSetHeader } from "mysql2";
+import { ResultSetHeader } from "mysql2"; 
 import session from "express-session";
+
+declare module "express-serve-static-core" {
+  interface Request {
+    session: session & {};
+  }
+}
 
 const app = express();
 
@@ -32,8 +38,17 @@ const connection = mysql.createPool({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Middleware para verificar se o usuário está logado
+function verificarLogin(req: Request, res: Response, next: Function) {
+  if (req.session.userId) {
+    next();
+  } else {
+    res.redirect("/login");
+  }
+}
+
 // ------------------------ Categories ------------------------
-app.get("/categories", async (req: Request, res: Response) => {
+app.get("/categories", verificarLogin, async (req: Request, res: Response) => {
   const [rows] = await connection.query("SELECT * FROM categories");
   res.render("categories/index", { categories: rows });
 });
@@ -55,20 +70,22 @@ app.post("/categories/delete/:id", async (req: Request, res: Response) => {
 });
 
 // ------------------------ Users ------------------------
-app.get("/users", async (req: Request, res: Response) => {
+app.get("/users", verificarLogin, async (req: Request, res: Response) => {
   const [rows] = await connection.query("SELECT * FROM users");
-  res.render("users/index", { users: rows });
+  const successMessage = req.query.successMessage;
+  const errorMessage = req.query.errorMessage;
+  res.render("users/index", { users: rows, successMessage, errorMessage });
 });
 
 app.get("/users/add", (req: Request, res: Response) => {
-  res.render("users/add");
+  res.render("users/add", { errorMessage: "" });
 });
 
 app.post("/users", async (req: Request, res: Response) => {
-  const { name, email, senha, papel, active } = req.body;
-  const isActive = active === "on" ? 1 : 0;
+  const { name, email, senha, papel, ativo } = req.body;
+  const isActive = ativo === "on" ? 1 : 0;
   await connection.query(
-    "INSERT INTO users (name, email, senha, papel, active, created_at) VALUES (?, ?, ?, ?, ?, NOW())",
+    "INSERT INTO users (name, email, senha, papel, ativo, created_at) VALUES (?, ?, ?, ?, ?, NOW())",
     [name, email, senha, papel, isActive]
   );
   res.redirect("/users");
@@ -87,7 +104,9 @@ app.get("/users/edit/:id", async (req: Request, res: Response) => {
     id,
   ]);
   if (Array.isArray(rows) && rows.length > 0) {
-    res.render("users/edit", { user: rows[0] });
+    const successMessage = req.query.successMessage;
+    const errorMessage = req.query.errorMessage;
+    res.render("users/edit", { user: rows[0], successMessage, errorMessage });
   } else {
     res.redirect("/users");
   }
@@ -95,13 +114,21 @@ app.get("/users/edit/:id", async (req: Request, res: Response) => {
 
 app.post("/users/update/:id", async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { name, email, senha, papel, active } = req.body;
-  const isActive = active === "on" ? 1 : 0;
+  const { name, email, senha, confirm_senha, papel, ativo } = req.body;
+  const isActive = ativo === "on" ? 1 : 0;
+
+  if (senha !== confirm_senha) {
+    return res.redirect(
+      `/users/edit/${id}?errorMessage=As senhas não coincidem!`
+    );
+  }
+
   await connection.query(
     "UPDATE users SET name = ?, email = ?, senha = ?, papel = ?, ativo = ? WHERE id = ?",
     [name, email, senha, papel, isActive, id]
   );
-  res.redirect("/users");
+
+  res.redirect(`/users?successMessage=Usuário editado com sucesso!`);
 });
 
 // ------------------------ Login ------------------------
@@ -140,27 +167,43 @@ app.post("/login/search", async (req: Request, res: Response) => {
 });
 
 // ------------------------ Página Inicial ------------------------
-app.get("/", (req: Request, res: Response) => {
+app.get("/", verificarLogin, (req: Request, res: Response) => {
   res.render("blog/index");
 });
 
 // ------------------------ Salvar Usuários ------------------------
 app.post("/users/save", async (req: Request, res: Response) => {
   const { name, email, senha, confirm_senha, papel, ativo } = req.body;
-  
+
+  if (senha !== confirm_senha) {
+    return res.render("users/add", {
+      errorMessage: "As senhas não coincidem. Tente novamente.",
+    });
+  }
+
   const isActive = ativo === "on" ? 1 : 0;
 
   const [result] = await connection.query<ResultSetHeader>(
-    "INSERT INTO users (name, email, senha, confirm_senha, papel, ativo) VALUES (?, ?, ?, ?, ?, ?)",
-    [name, email, senha, confirm_senha, papel, isActive]
+    "INSERT INTO users (name, email, senha, papel, ativo) VALUES (?, ?, ?, ?, ?)",
+    [name, email, senha, papel, isActive]
   );
 
   if (result.affectedRows > 0) {
     req.session.userId = result.insertId;
     res.redirect("/users");
   } else {
-    res.render("users/add");
+    res.render("users/add", { errorMessage: "Erro ao salvar usuário." });
   }
+});
+
+// ------------------------ Logout de Usuário ------------------------
+app.get("/logout", (req: Request, res: Response) => {
+  req.session.destroy((err) => {
+    if (err) {
+      return res.redirect("/users");
+    }
+    res.redirect("/login");
+  });
 });
 
 // ------------------------ Inicialização do Servidor ------------------------

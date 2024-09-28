@@ -74,12 +74,24 @@
         width: 100%;
         text-align: center;
       }
+      .logout-btn {
+        display: inline-block;
+        width: 49%;
+        text-align: center;
+      }
+      .blog-btn {
+        display: inline-block;
+        width: 49%;
+        text-align: center;
+      }
     </style>
   </head>
   <body>
     <div class="container mt-5">
       <h1 class="mb-4">Lista de Usuários</h1>
-
+      <% if (successMessage) { %>
+      <div class="alert alert-success"><%= successMessage %></div>
+      <% } %>
       <table class="table">
         <thead>
           <tr>
@@ -137,6 +149,11 @@
       <a href="/users/add" class="btn btn-info add-user-btn mt-4"
         >Adicionar Novo Usuário</a
       >
+
+      <div class="d-flex justify-content-between mt-4">
+        <a href="/" class="btn btn-primary blog-btn">Ir para o Blog</a>
+        <a href="/logout" class="btn btn-danger logout-btn">Logout</a>
+      </div>
     </div>
 
     <!-- Bootstrap JS CDN -->
